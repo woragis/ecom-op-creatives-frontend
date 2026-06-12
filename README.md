@@ -31,13 +31,11 @@ npm run dev
 
 API backend: `http://localhost:8080`
 
-## Phase 0 entregue
+## Phase 1 entregue
 
-- Dashboard com contagem de products/runs
-- Lista e criação de products
-- Lista, criação e start de creative runs
-- Detalhe do run com timeline de pipeline steps
-- Seletor de video provider (Kling, Runway, Luma, Veo)
+- Pipeline viewer com preview JSON por step
+- Player de vídeo final (`postprocess.finalVideoUrl`)
+- Media URLs via API (`/media/runs/...`)
 
 ## Documentação
 
