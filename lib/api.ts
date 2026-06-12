@@ -83,6 +83,19 @@ export async function reprocessRun(
   });
 }
 
+export async function approveRun(runId: string): Promise<CreativeRun> {
+  return apiFetch<CreativeRun>(`/v1/creative-runs/${runId}/approve`, {
+    method: "POST",
+  });
+}
+
+export async function retryStep(runId: string, stepId: string): Promise<CreativeRun> {
+  return apiFetch<CreativeRun>(
+    `/v1/creative-runs/${runId}/steps/${stepId}/retry`,
+    { method: "POST" }
+  );
+}
+
 export type VideoProvider = {
   id: string;
   configured: boolean;

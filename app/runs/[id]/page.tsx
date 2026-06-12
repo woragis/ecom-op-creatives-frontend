@@ -1,65 +1,24 @@
 import Link from "next/link";
 import { AssetUploadForm } from "@/components/AssetUploadForm";
+import { MediaPreviewGrid } from "@/components/MediaPreviewGrid";
+import { PipelineStepper } from "@/components/PipelineStepper";
+import { RunActions } from "@/components/RunActions";
+import { RunLivePoller } from "@/components/RunLivePoller";
+import { SceneTimeline } from "@/components/SceneTimeline";
 import { StepEditor } from "@/components/StepEditor";
 import { getCreativeRun } from "@/lib/api";
 import { mediaUrl } from "@/lib/media";
-import type { PipelineStep } from "@/lib/types";
-
-function parseOutput(step: PipelineStep): Record<string, unknown> | null {
-  if (!step.outputJson) return null;
-  if (typeof step.outputJson === "object") {
-    return step.outputJson as Record<string, unknown>;
-  }
-  return null;
-}
-
-type VideoClip = { sceneId: string; publicUrl: string; provider: string; mode?: string };
-type SceneImage = { sceneId: string; role: string; publicUrl: string; source: string };
-
-function findVideoClips(steps: PipelineStep[]): VideoClip[] {
-  const video = steps.find((s) => s.stepType === "video" && s.status === "done");
-  const out = video ? parseOutput(video) : null;
-  const clips = out?.clips;
-  if (!Array.isArray(clips)) return [];
-  return clips.filter(
-    (c): c is VideoClip =>
-      typeof c === "object" &&
-      c !== null &&
-      typeof (c as VideoClip).sceneId === "string" &&
-      typeof (c as VideoClip).publicUrl === "string"
-  );
-}
-
-function findSceneImages(steps: PipelineStep[]): SceneImage[] {
-  const image = steps.find((s) => s.stepType === "image" && s.status === "done");
-  const out = image ? parseOutput(image) : null;
-  const images = out?.images;
-  if (!Array.isArray(images)) return [];
-  return images.filter(
-    (img): img is SceneImage =>
-      typeof img === "object" &&
-      img !== null &&
-      typeof (img as SceneImage).sceneId === "string" &&
-      typeof (img as SceneImage).publicUrl === "string"
-  );
-}
-
-function findSubtitles(steps: PipelineStep[]): { srtUrl?: string; source?: string } | null {
-  const sub = steps.find((s) => s.stepType === "subtitles" && s.status === "done");
-  const out = sub ? parseOutput(sub) : null;
-  if (!out) return null;
-  const srtUrl = typeof out.srtUrl === "string" ? out.srtUrl : undefined;
-  const source = typeof out.source === "string" ? out.source : undefined;
-  if (!srtUrl && !source) return null;
-  return { srtUrl, source };
-}
-
-function findFinalVideo(steps: PipelineStep[]): string | null {
-  const post = steps.find((s) => s.stepType === "postprocess" && s.status === "done");
-  const out = post ? parseOutput(post) : null;
-  const url = out?.finalVideoUrl;
-  return typeof url === "string" ? mediaUrl(url) : null;
-}
+import {
+  findFinalVideoUrl,
+  findIntroMs,
+  findNarrationUrl,
+  findSceneImages,
+  findScriptScenes,
+  findSubtitles,
+  findSupervisor,
+  findVideoClips,
+  parseStepOutput,
+} from "@/lib/run-parsers";
 
 export default async function RunDetailPage({
   params,
@@ -88,11 +47,16 @@ export default async function RunDetailPage({
   if (!run) return null;
 
   const steps = run.steps ?? [];
-  const videoSrc = findFinalVideo(steps);
+  const videoSrc = mediaUrl(findFinalVideoUrl(steps));
   const clips = findVideoClips(steps);
   const images = findSceneImages(steps);
-  const assets = run.inputAssets;
+  const scenes = findScriptScenes(steps);
   const subs = findSubtitles(steps);
+  const supervisor = findSupervisor(steps);
+  const assets = run.inputAssets;
+  const hasIntro = Boolean(assets?.introClip);
+  const introMs = findIntroMs(steps, hasIntro);
+  const narrationUrl = findNarrationUrl(steps);
   const canUpload =
     run.status === "draft" ||
     run.status === "failed" ||
@@ -100,28 +64,54 @@ export default async function RunDetailPage({
     run.status === "approved";
 
   return (
-    <div>
+    <div className="run-detail">
       <Link href="/runs">← Back to runs</Link>
-      <h1>Run {run.id.slice(0, 8)}</h1>
-      <p className="muted">
-        Status: <span className={`badge badge-${run.status}`}>{run.status}</span> ·
-        Image: {run.imageProvider} · Video: {run.videoProvider}
-      </p>
 
-      <div style={{ marginTop: "1.5rem" }}>
-        <h2>Input assets</h2>
-        <AssetUploadForm runId={run.id} disabled={!canUpload} />
-        {assets ? (
-          <ul className="muted" style={{ marginTop: "1rem" }}>
-            {assets.personaImage ? <li>Persona: {assets.personaImage}</li> : null}
-            {assets.productImage ? <li>Product: {assets.productImage}</li> : null}
-            {assets.introClip ? <li>Intro clip: {assets.introClip}</li> : null}
-          </ul>
-        ) : null}
-      </div>
+      <header className="run-header">
+        <div>
+          <h1>Run {run.id.slice(0, 8)}</h1>
+          <p className="muted">
+            <span className={`badge badge-${run.status}`}>{run.status}</span>
+            {" · "}
+            {run.imageProvider} / {run.videoProvider}
+            {run.hook ? ` · "${run.hook}"` : ""}
+          </p>
+        </div>
+        <RunActions runId={run.id} status={run.status} />
+      </header>
+
+      <RunLivePoller runId={run.id} status={run.status} />
+
+      <section className="card" style={{ marginTop: "1.25rem" }}>
+        <h2>Pipeline progress</h2>
+        <PipelineStepper steps={steps} />
+      </section>
+
+      {scenes.length > 0 ? (
+        <section style={{ marginTop: "1.5rem" }}>
+          <h2>Scene timeline</h2>
+          <SceneTimeline scenes={scenes} introMs={introMs} />
+        </section>
+      ) : null}
+
+      {videoSrc ? (
+        <section className="card final-video-card">
+          <h2>Final creative</h2>
+          <video src={videoSrc} controls playsInline />
+          <p className="muted">9:16 UGC output</p>
+        </section>
+      ) : null}
+
+      <MediaPreviewGrid
+        images={images}
+        clips={clips}
+        narrationUrl={narrationUrl}
+        imageProvider={run.imageProvider}
+        videoProvider={run.videoProvider}
+      />
 
       {subs ? (
-        <p className="muted" style={{ marginTop: "1rem" }}>
+        <p className="muted">
           Subtitles: {subs.source ?? "unknown"}
           {subs.srtUrl ? (
             <>
@@ -135,87 +125,76 @@ export default async function RunDetailPage({
         </p>
       ) : null}
 
-      {videoSrc ? (
-        <div className="card" style={{ marginTop: "1.5rem", maxWidth: 360 }}>
-          <h2>Final creative</h2>
-          <video
-            src={videoSrc}
-            controls
-            style={{ width: "100%", borderRadius: 12, background: "#000" }}
-          />
-          <p className="muted" style={{ marginTop: "0.5rem" }}>
-            9:16 UGC preview
-          </p>
-        </div>
+      {supervisor ? (
+        <section className="card qa-card">
+          <h2>Quality review</h2>
+          {supervisor.qualityScore != null ? (
+            <p>
+              Score: <strong>{supervisor.qualityScore}</strong>
+              {supervisor.approved != null ? (
+                <span className={`badge badge-${supervisor.approved ? "done" : "failed"}`}>
+                  {supervisor.approved ? "pass" : "fail"}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+          {supervisor.issues?.length ? (
+            <ul className="muted">
+              {supervisor.issues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
       ) : null}
 
-      {images.length > 0 ? (
-        <div style={{ marginTop: "1.5rem" }}>
-          <h2>Scene images ({run.imageProvider})</h2>
-          <div className="card-grid">
-            {images.map((img) => (
-              <div key={`${img.sceneId}-${img.role}`} className="card">
-                <h3>
-                  {img.sceneId} · {img.role}
-                </h3>
-                <p className="muted">{img.source}</p>
-                <a href={mediaUrl(img.publicUrl) ?? "#"} target="_blank" rel="noreferrer">
-                  View image
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <section style={{ marginTop: "1.5rem" }}>
+        <h2>Input assets</h2>
+        <AssetUploadForm runId={run.id} disabled={!canUpload} />
+        {assets ? (
+          <ul className="muted asset-list">
+            {assets.personaImage ? <li>Persona: {assets.personaImage}</li> : null}
+            {assets.productImage ? <li>Product: {assets.productImage}</li> : null}
+            {assets.introClip ? <li>Intro clip: {assets.introClip}</li> : null}
+          </ul>
+        ) : null}
+      </section>
 
-      {clips.length > 0 ? (
-        <div style={{ marginTop: "1.5rem" }}>
-          <h2>AI video clips ({run.videoProvider})</h2>
-          <div className="card-grid">
-            {clips.map((clip) => (
-              <div key={clip.sceneId} className="card">
-                <h3>{clip.sceneId}</h3>
-                {clip.mode ? <p className="muted">{clip.mode}</p> : null}
-                <a href={mediaUrl(clip.publicUrl) ?? "#"} target="_blank" rel="noreferrer">
-                  Download clip
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <h2 style={{ marginTop: "2rem" }}>Pipeline</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Step</th>
-            <th>Status</th>
-            <th>Output</th>
-          </tr>
-        </thead>
-        <tbody>
-          {steps.map((step) => {
-            const out = parseOutput(step);
-            const preview = out
-              ? JSON.stringify(out, null, 0).slice(0, 120) +
-                (JSON.stringify(out).length > 120 ? "…" : "")
-              : "—";
-            return (
-              <tr key={step.id}>
-                <td>{step.stepOrder}</td>
-                <td>{step.stepType}</td>
-                <td>{step.status}</td>
-                <td className="muted" style={{ fontSize: "0.8rem", maxWidth: 420 }}>
-                  <code>{preview}</code>
-                  <StepEditor runId={run.id} step={step} runStatus={run.status} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <section style={{ marginTop: "2rem" }}>
+        <h2>Step outputs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Step</th>
+              <th>Status</th>
+              <th>Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            {steps.map((step) => {
+              const out = parseStepOutput(step);
+              const preview = out
+                ? JSON.stringify(out, null, 0).slice(0, 100) +
+                  (JSON.stringify(out).length > 100 ? "…" : "")
+                : "—";
+              return (
+                <tr key={step.id}>
+                  <td>{step.stepOrder}</td>
+                  <td>{step.stepType}</td>
+                  <td>
+                    <span className={`badge badge-${step.status}`}>{step.status}</span>
+                  </td>
+                  <td className="step-output-cell">
+                    <code>{preview}</code>
+                    <StepEditor runId={run.id} step={step} runStatus={run.status} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }

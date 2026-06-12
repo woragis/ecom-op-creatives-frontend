@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PipelineStep } from "@/lib/types";
+import { StepRetryButton } from "./StepRetryButton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -80,12 +81,13 @@ export function StepEditor({ runId, step, runStatus }: Props) {
     }
   }
 
-  if (!editable && step.status !== "done") {
+  if (!editable && step.status !== "done" && step.status !== "failed") {
     return null;
   }
 
   return (
     <div style={{ marginTop: "0.35rem" }}>
+      <StepRetryButton runId={runId} step={step} runStatus={runStatus} />
       {editable ? (
         <button type="button" onClick={loadEditor} disabled={saving}>
           Edit output
