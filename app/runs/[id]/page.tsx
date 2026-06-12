@@ -11,6 +11,22 @@ function parseOutput(step: PipelineStep): Record<string, unknown> | null {
   return null;
 }
 
+type VideoClip = { sceneId: string; publicUrl: string; provider: string };
+
+function findVideoClips(steps: PipelineStep[]): VideoClip[] {
+  const video = steps.find((s) => s.stepType === "video" && s.status === "done");
+  const out = video ? parseOutput(video) : null;
+  const clips = out?.clips;
+  if (!Array.isArray(clips)) return [];
+  return clips.filter(
+    (c): c is VideoClip =>
+      typeof c === "object" &&
+      c !== null &&
+      typeof (c as VideoClip).sceneId === "string" &&
+      typeof (c as VideoClip).publicUrl === "string"
+  );
+}
+
 function findFinalVideo(steps: PipelineStep[]): string | null {
   const post = steps.find((s) => s.stepType === "postprocess" && s.status === "done");
   const out = post ? parseOutput(post) : null;
@@ -46,6 +62,7 @@ export default async function RunDetailPage({
 
   const steps = run.steps ?? [];
   const videoSrc = findFinalVideo(steps);
+  const clips = findVideoClips(steps);
 
   return (
     <div>
@@ -67,6 +84,22 @@ export default async function RunDetailPage({
           <p className="muted" style={{ marginTop: "0.5rem" }}>
             9:16 UGC preview
           </p>
+        </div>
+      ) : null}
+
+      {clips.length > 0 ? (
+        <div style={{ marginTop: "1.5rem" }}>
+          <h2>AI video clips ({run.videoProvider})</h2>
+          <div className="card-grid">
+            {clips.map((clip) => (
+              <div key={clip.sceneId} className="card">
+                <h3>{clip.sceneId}</h3>
+                <a href={mediaUrl(clip.publicUrl) ?? "#"} target="_blank" rel="noreferrer">
+                  Download clip
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

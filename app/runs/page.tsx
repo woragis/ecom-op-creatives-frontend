@@ -3,6 +3,7 @@ import {
   createCreativeRun,
   listCreativeRuns,
   listProducts,
+  listVideoProviders,
   startCreativeRun,
 } from "@/lib/api";
 import type { CreativeRun, Product } from "@/lib/types";
@@ -39,13 +40,26 @@ function statusClass(status: string) {
 export default async function RunsPage() {
   let runs: CreativeRun[] = [];
   let products: Product[] = [];
+  let providers = [
+    { id: "kling", configured: true, isDefault: true },
+    { id: "runway", configured: false, isDefault: false },
+    { id: "luma", configured: false, isDefault: false },
+    { id: "veo", configured: false, isDefault: false },
+  ];
   let error: string | null = null;
 
   try {
-    [runs, products] = await Promise.all([listCreativeRuns(), listProducts()]);
+    [runs, products, providers] = await Promise.all([
+      listCreativeRuns(),
+      listProducts(),
+      listVideoProviders(),
+    ]);
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load runs";
   }
+
+  const defaultProvider =
+    providers.find((p) => p.isDefault)?.id ?? providers[0]?.id ?? "kling";
 
   return (
     <div>
@@ -63,11 +77,13 @@ export default async function RunsPage() {
           ))}
         </select>
         <input name="hook" placeholder="Hook (optional)" />
-        <select name="videoProvider" defaultValue="kling">
-          <option value="kling">Kling</option>
-          <option value="runway">Runway</option>
-          <option value="luma">Luma</option>
-          <option value="veo">Veo</option>
+        <select name="videoProvider" defaultValue={defaultProvider}>
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.id}
+              {p.configured ? "" : " (mock)"}
+            </option>
+          ))}
         </select>
         <button type="submit">Create run</button>
       </form>

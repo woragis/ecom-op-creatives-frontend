@@ -59,3 +59,14 @@ export async function startCreativeRun(id: string): Promise<CreativeRun> {
     method: "POST",
   });
 }
+
+export type VideoProvider = {
+  id: string;
+  configured: boolean;
+  isDefault: boolean;
+};
+
+export async function listVideoProviders(): Promise<VideoProvider[]> {
+  const data = await apiFetch<{ items: VideoProvider[] }>("/v1/video-providers");
+  return data.items ?? [];
+}
