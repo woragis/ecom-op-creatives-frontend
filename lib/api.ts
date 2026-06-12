@@ -1,9 +1,18 @@
 import type { CreativeRun, Product } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+function apiBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return (
+      process.env.API_URL ??
+      process.env.NEXT_PUBLIC_API_URL ??
+      "http://localhost:8080"
+    );
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+}
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${apiBaseUrl()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
