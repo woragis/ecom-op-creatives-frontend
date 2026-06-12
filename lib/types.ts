@@ -16,10 +16,18 @@ export type PipelineStep = {
   outputJson: unknown;
 };
 
+export type RunAssets = {
+  personaImage?: string;
+  productImage?: string;
+  introClip?: string;
+};
+
 export type CreativeRun = {
   id: string;
   productId: string;
   videoProvider: string;
+  imageProvider: string;
+  inputAssets?: RunAssets;
   status: string;
   hook?: string;
   createdAt: string;

@@ -3,6 +3,7 @@ import {
   createCreativeRun,
   listCreativeRuns,
   listProducts,
+  listImageProviders,
   listVideoProviders,
   startCreativeRun,
 } from "@/lib/api";
@@ -14,11 +15,13 @@ async function createRunAction(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   const hook = String(formData.get("hook") ?? "").trim();
   const videoProvider = String(formData.get("videoProvider") ?? "kling");
+  const imageProvider = String(formData.get("imageProvider") ?? "flux");
   if (!productId) return;
   await createCreativeRun({
     productId,
     hook: hook || undefined,
     videoProvider,
+    imageProvider,
   });
   revalidatePath("/runs");
   revalidatePath("/");
@@ -40,26 +43,33 @@ function statusClass(status: string) {
 export default async function RunsPage() {
   let runs: CreativeRun[] = [];
   let products: Product[] = [];
-  let providers = [
+  let videoProviders = [
     { id: "kling", configured: true, isDefault: true },
     { id: "runway", configured: false, isDefault: false },
     { id: "luma", configured: false, isDefault: false },
     { id: "veo", configured: false, isDefault: false },
   ];
+  let imageProviders = [
+    { id: "flux", configured: true, isDefault: true },
+    { id: "dalle", configured: false, isDefault: false },
+  ];
   let error: string | null = null;
 
   try {
-    [runs, products, providers] = await Promise.all([
+    [runs, products, videoProviders, imageProviders] = await Promise.all([
       listCreativeRuns(),
       listProducts(),
       listVideoProviders(),
+      listImageProviders(),
     ]);
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load runs";
   }
 
-  const defaultProvider =
-    providers.find((p) => p.isDefault)?.id ?? providers[0]?.id ?? "kling";
+  const defaultVideoProvider =
+    videoProviders.find((p) => p.isDefault)?.id ?? videoProviders[0]?.id ?? "kling";
+  const defaultImageProvider =
+    imageProviders.find((p) => p.isDefault)?.id ?? imageProviders[0]?.id ?? "flux";
 
   return (
     <div>
@@ -77,10 +87,18 @@ export default async function RunsPage() {
           ))}
         </select>
         <input name="hook" placeholder="Hook (optional)" />
-        <select name="videoProvider" defaultValue={defaultProvider}>
-          {providers.map((p) => (
+        <select name="imageProvider" defaultValue={defaultImageProvider}>
+          {imageProviders.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.id}
+              image: {p.id}
+              {p.configured ? "" : " (mock)"}
+            </option>
+          ))}
+        </select>
+        <select name="videoProvider" defaultValue={defaultVideoProvider}>
+          {videoProviders.map((p) => (
+            <option key={p.id} value={p.id}>
+              video: {p.id}
               {p.configured ? "" : " (mock)"}
             </option>
           ))}
@@ -94,7 +112,7 @@ export default async function RunsPage() {
         <thead>
           <tr>
             <th>Status</th>
-            <th>Provider</th>
+            <th>Image / Video</th>
             <th>Hook</th>
             <th>Created</th>
             <th></th>
@@ -106,7 +124,9 @@ export default async function RunsPage() {
               <td>
                 <span className={statusClass(run.status)}>{run.status}</span>
               </td>
-              <td>{run.videoProvider}</td>
+              <td>
+                {run.imageProvider} / {run.videoProvider}
+              </td>
               <td>{run.hook ?? "—"}</td>
               <td>{new Date(run.createdAt).toLocaleString()}</td>
               <td style={{ display: "flex", gap: "0.5rem" }}>

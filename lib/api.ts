@@ -47,6 +47,7 @@ export async function createCreativeRun(input: {
   productId: string;
   hook?: string;
   videoProvider?: string;
+  imageProvider?: string;
 }): Promise<CreativeRun> {
   return apiFetch<CreativeRun>("/v1/creative-runs", {
     method: "POST",
@@ -68,5 +69,12 @@ export type VideoProvider = {
 
 export async function listVideoProviders(): Promise<VideoProvider[]> {
   const data = await apiFetch<{ items: VideoProvider[] }>("/v1/video-providers");
+  return data.items ?? [];
+}
+
+export type ImageProvider = VideoProvider;
+
+export async function listImageProviders(): Promise<ImageProvider[]> {
+  const data = await apiFetch<{ items: ImageProvider[] }>("/v1/image-providers");
   return data.items ?? [];
 }
