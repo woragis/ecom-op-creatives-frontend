@@ -43,6 +43,7 @@ export async function getCreativeRun(id: string): Promise<CreativeRun> {
 
 export async function createProduct(input: {
   name: string;
+  description?: string;
   url?: string;
   niche?: string;
 }): Promise<Product> {

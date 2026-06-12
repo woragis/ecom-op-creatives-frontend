@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 async function createProductAction(formData: FormData) {
   "use server";
   const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
   const url = String(formData.get("url") ?? "").trim();
   const niche = String(formData.get("niche") ?? "").trim();
   if (!name) return;
   await createProduct({
     name,
+    description: description || undefined,
     url: url || undefined,
     niche: niche || undefined,
   });
@@ -33,6 +35,7 @@ export default async function ProductsPage() {
 
       <form action={createProductAction} className="form">
         <input name="name" placeholder="Product name" required />
+        <textarea name="description" placeholder="Product description (benefits, features)" rows={3} />
         <input name="url" placeholder="Product URL (optional)" />
         <input name="niche" placeholder="Niche (optional)" />
         <button type="submit">Add product</button>
@@ -44,6 +47,7 @@ export default async function ProductsPage() {
         {items.map((product) => (
           <div key={product.id} className="card">
             <h2>{product.name}</h2>
+            {product.description ? <p>{product.description}</p> : null}
             {product.niche ? <p className="muted">{product.niche}</p> : null}
             {product.url ? (
               <a href={product.url} target="_blank" rel="noreferrer">

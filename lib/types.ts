@@ -2,7 +2,7 @@ export type Product = {
   id: string;
   name: string;
   url?: string;
-  niche?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 };
