@@ -44,6 +44,16 @@ function findSceneImages(steps: PipelineStep[]): SceneImage[] {
   );
 }
 
+function findSubtitles(steps: PipelineStep[]): { srtUrl?: string; source?: string } | null {
+  const sub = steps.find((s) => s.stepType === "subtitles" && s.status === "done");
+  const out = sub ? parseOutput(sub) : null;
+  if (!out) return null;
+  const srtUrl = typeof out.srtUrl === "string" ? out.srtUrl : undefined;
+  const source = typeof out.source === "string" ? out.source : undefined;
+  if (!srtUrl && !source) return null;
+  return { srtUrl, source };
+}
+
 function findFinalVideo(steps: PipelineStep[]): string | null {
   const post = steps.find((s) => s.stepType === "postprocess" && s.status === "done");
   const out = post ? parseOutput(post) : null;
@@ -82,6 +92,7 @@ export default async function RunDetailPage({
   const clips = findVideoClips(steps);
   const images = findSceneImages(steps);
   const assets = run.inputAssets;
+  const subs = findSubtitles(steps);
   const canUpload =
     run.status === "draft" ||
     run.status === "failed" ||
@@ -108,6 +119,21 @@ export default async function RunDetailPage({
           </ul>
         ) : null}
       </div>
+
+      {subs ? (
+        <p className="muted" style={{ marginTop: "1rem" }}>
+          Subtitles: {subs.source ?? "unknown"}
+          {subs.srtUrl ? (
+            <>
+              {" "}
+              ·{" "}
+              <a href={mediaUrl(subs.srtUrl) ?? "#"} target="_blank" rel="noreferrer">
+                Download SRT
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       {videoSrc ? (
         <div className="card" style={{ marginTop: "1.5rem", maxWidth: 360 }}>

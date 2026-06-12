@@ -20,7 +20,7 @@ export default async function HomePage() {
   return (
     <div>
       <h1>Dashboard</h1>
-      <p className="muted">Phase 4 — step editor and pipeline reprocessing</p>
+      <p className="muted">Phase 5 — Whisper subtitles, Remotion render, FFmpeg output</p>
 
       {error ? <p className="error">{error}</p> : null}
 
