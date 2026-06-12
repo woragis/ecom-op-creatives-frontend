@@ -62,6 +62,7 @@ export default async function RunDetailPage({
     run.status === "failed" ||
     run.status === "needs_review" ||
     run.status === "approved";
+  const hasPendingSteps = steps.some((s) => s.status === "pending");
 
   return (
     <div className="run-detail">
@@ -77,7 +78,11 @@ export default async function RunDetailPage({
             {run.hook ? ` · "${run.hook}"` : ""}
           </p>
         </div>
-        <RunActions runId={run.id} status={run.status} />
+        <RunActions
+          runId={run.id}
+          status={run.status}
+          hasPendingSteps={hasPendingSteps}
+        />
       </header>
 
       <RunLivePoller runId={run.id} status={run.status} />

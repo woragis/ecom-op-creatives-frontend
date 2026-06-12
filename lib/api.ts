@@ -98,6 +98,12 @@ export async function approveRun(runId: string): Promise<CreativeRun> {
   });
 }
 
+export async function continueRun(runId: string): Promise<CreativeRun> {
+  return apiFetch<CreativeRun>(`/v1/creative-runs/${runId}/continue`, {
+    method: "POST",
+  });
+}
+
 export async function retryStep(runId: string, stepId: string): Promise<CreativeRun> {
   return apiFetch<CreativeRun>(
     `/v1/creative-runs/${runId}/steps/${stepId}/retry`,
