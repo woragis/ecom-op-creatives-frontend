@@ -39,8 +39,8 @@ export function AssetUploadForm({ runId, disabled }: Props) {
   return (
     <div className="form" style={{ maxWidth: 520 }}>
       <p className="muted">
-        Upload reference assets before starting the run. Persona and product images
-        are reused for image2video consistency.
+        Upload persona, product, or intro clip. On completed runs, replacing an asset
+        automatically reprocesses from image (persona/product) or render (intro).
       </p>
       {(["persona", "product", "intro"] as const).map((type) => (
         <label key={type} style={{ display: "grid", gap: "0.35rem" }}>

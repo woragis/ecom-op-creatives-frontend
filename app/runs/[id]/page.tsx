@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AssetUploadForm } from "@/components/AssetUploadForm";
+import { StepEditor } from "@/components/StepEditor";
 import { getCreativeRun } from "@/lib/api";
 import { mediaUrl } from "@/lib/media";
 import type { PipelineStep } from "@/lib/types";
@@ -81,7 +82,11 @@ export default async function RunDetailPage({
   const clips = findVideoClips(steps);
   const images = findSceneImages(steps);
   const assets = run.inputAssets;
-  const canUpload = run.status === "draft" || run.status === "failed";
+  const canUpload =
+    run.status === "draft" ||
+    run.status === "failed" ||
+    run.status === "needs_review" ||
+    run.status === "approved";
 
   return (
     <div>
@@ -178,6 +183,7 @@ export default async function RunDetailPage({
                 <td>{step.status}</td>
                 <td className="muted" style={{ fontSize: "0.8rem", maxWidth: 420 }}>
                   <code>{preview}</code>
+                  <StepEditor runId={run.id} step={step} runStatus={run.status} />
                 </td>
               </tr>
             );

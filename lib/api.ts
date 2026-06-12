@@ -61,6 +61,28 @@ export async function startCreativeRun(id: string): Promise<CreativeRun> {
   });
 }
 
+export async function editRunStep(
+  runId: string,
+  stepId: string,
+  outputJson: unknown,
+  reprocess = true
+): Promise<CreativeRun> {
+  return apiFetch<CreativeRun>(`/v1/creative-runs/${runId}/steps/${stepId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ outputJson, reprocess }),
+  });
+}
+
+export async function reprocessRun(
+  runId: string,
+  fromStepType: string
+): Promise<CreativeRun> {
+  return apiFetch<CreativeRun>(`/v1/creative-runs/${runId}/reprocess`, {
+    method: "POST",
+    body: JSON.stringify({ fromStepType }),
+  });
+}
+
 export type VideoProvider = {
   id: string;
   configured: boolean;

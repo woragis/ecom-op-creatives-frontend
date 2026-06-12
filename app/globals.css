@@ -86,6 +86,21 @@ a:hover {
   background: #24304d;
 }
 
+.badge-invalidated {
+  background: #3a2a4a;
+  color: #d4b5ff;
+}
+
+.badge-done {
+  background: #1f3a2a;
+  color: #a8f0c8;
+}
+
+.badge-failed {
+  background: #4a1f1f;
+  color: #ffb4b4;
+}
+
 button,
 .button {
   background: #3b6cff;
