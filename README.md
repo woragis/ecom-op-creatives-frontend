@@ -31,6 +31,14 @@ npm run dev
 
 API backend: `http://localhost:8080`
 
+## Phase 0 entregue
+
+- Dashboard com contagem de products/runs
+- Lista e criação de products
+- Lista, criação e start de creative runs
+- Detalhe do run com timeline de pipeline steps
+- Seletor de video provider (Kling, Runway, Luma, Veo)
+
 ## Documentação
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
